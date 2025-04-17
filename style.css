@@ -1,0 +1,55 @@
+/* style.css – Styling for editmyphoto010 */
+
+body {
+  background-image: linear-gradient(to right top, #1a2a6c, #b21f1f, #fdbb2d);
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  text-align: center;
+  margin: 0;
+  padding: 0;
+}
+
+h1 {
+  font-size: 3rem;
+  font-weight: 800;
+  margin-bottom: 1.5rem;
+}
+
+h1 span {
+  color: #facc15;
+}
+
+p {
+  font-size: 1.25rem;
+  margin-bottom: 2.5rem;
+}
+
+.btn {
+  background-color: white;
+  color: black;
+  font-weight: bold;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.3s;
+  text-decoration: none;
+}
+
+.btn:hover {
+  background-color: #fde047;
+}
+
+footer {
+  position: absolute;
+  bottom: 1rem;
+  font-size: 0.875rem;
+  opacity: 0.75;
+}
