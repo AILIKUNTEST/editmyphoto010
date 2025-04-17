@@ -1,151 +1,155 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Photo Editor</title>
-  <style>
-    body, html {
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      background-color: #2e2e2e;
-    }
-    #toolbar {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 60px;
-      height: 100%;
-      background: #1e1e1e;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 10px 0;
-      box-shadow: 2px 0 5px rgba(0,0,0,0.5);
-      z-index: 10;
-    }
-    #toolbar button {
-      background: none;
-      border: none;
-      margin: 10px 0;
-      color: white;
-      cursor: pointer;
-    }
-    canvas {
-      position: absolute;
-      left: 60px;
-      top: 0;
-    }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EditMyPhoto010 - Editor</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div id="toolbar">
-    <button onclick="activateTool('zoomIn')">🔍+</button>
-    <button onclick="activateTool('zoomOut')">🔍-</button>
-    <button onclick="activateTool('draw')">✏️</button>
-    <button onclick="activateTool('eraser')">🧽</button>
-    <button onclick="activateTool('text')">🔤</button>
-    <button onclick="activateTool('invert')">🌓</button>
-    <button onclick="activateTool('saturation')">🎨</button>
-    <button onclick="activateTool('brightness')">💡</button>
-    <button onclick="activateTool('contrast')">🌓</button>
-    <button onclick="activateTool('crop')">✂️</button>
-    <button onclick="downloadImage()">⬇️</button>
-  </div>
-
-  <canvas id="editorCanvas"></canvas>
-
-  <script>
-    const canvas = document.getElementById('editorCanvas');
+  <div class="upload-screen">
+    <h1>Welcome to EditMyPhoto010</h1>
+    <p>Upload a photo to start editing (No data is stored)</p>
+    <input type="file" id="fileInput" accept="image/*">
+  </div>  <div class="editor-screen hidden">
+    <canvas id="canvas"></canvas>
+    <div class="bottom-toolbar">
+      <button onclick="zoomIn()" title="Zoom In"><img src="https://www.svgrepo.com/show/502644/zoom-in.svg" alt="Zoom In"></button>
+      <button onclick="zoomOut()" title="Zoom Out"><img src="https://www.svgrepo.com/show/502643/zoom-out.svg" alt="Zoom Out"></button>
+      <button onclick="invertColors()" title="Invert"><img src="https://www.svgrepo.com/show/502732/invert.svg" alt="Invert"></button>
+      <button onclick="grayscale()" title="Grayscale"><img src="https://www.svgrepo.com/show/510021/greyscale.svg" alt="Grayscale"></button>
+      <button onclick="saturate()" title="Saturate"><img src="https://www.svgrepo.com/show/439255/saturation.svg" alt="Saturate"></button>
+      <button onclick="pixelate()" title="Pixelate"><img src="https://www.svgrepo.com/show/500260/pixelate.svg" alt="Pixelate"></button>
+      <button onclick="enableDrawing()" title="Draw"><img src="https://www.svgrepo.com/show/500623/edit-3.svg" alt="Draw"></button>
+      <button onclick="disableDrawing()" title="Stop Draw"><img src="https://www.svgrepo.com/show/478024/close-circle.svg" alt="Stop Draw"></button>
+      <button onclick="enableCrop()" title="Start Crop"><img src="https://www.svgrepo.com/show/500285/crop.svg" alt="Crop"></button>
+      <button onclick="applyCrop()" title="Apply Crop"><img src="https://www.svgrepo.com/show/495812/check.svg" alt="Apply"></button>
+      <button onclick="downloadImage()" title="Download"><img src="https://www.svgrepo.com/show/500892/download.svg" alt="Download"></button>
+    </div>
+  </div>  <script>
+    const fileInput = document.getElementById('fileInput');
+    const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
-    let scale = 1;
-    let tool = '';
+    const uploadScreen = document.querySelector('.upload-screen');
+    const editorScreen = document.querySelector('.editor-screen');
+
     let img = new Image();
-    let isDrawing = false;
-    let startX, startY;
+    let scale = 1;
+    let drawing = false;
+    let cropStart = null;
+    let cropEnd = null;
 
-    canvas.width = window.innerWidth - 60;
-    canvas.height = window.innerHeight;
-
-    window.onload = () => {
-      const data = localStorage.getItem('imageData');
-      if (!data) {
-        alert("No image found. Please upload again.");
-        location.href = "index.html";
-        return;
-      }
-      img.onload = () => {
-        drawImage();
-      };
-      img.src = data;
-    };
-
-    function drawImage() {
-      canvas.width = window.innerWidth - 60;
-      canvas.height = window.innerHeight;
-      ctx.setTransform(scale, 0, 0, scale, 0, 0);
-      ctx.drawImage(img, 0, 0);
-    }
-
-    function activateTool(selected) {
-      tool = selected;
-      if (tool === 'zoomIn') {
-        scale += 0.1;
-        drawImage();
-      } else if (tool === 'zoomOut') {
-        scale = Math.max(0.1, scale - 0.1);
-        drawImage();
-      } else if (tool === 'invert') {
-        let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        let d = imgData.data;
-        for (let i = 0; i < d.length; i += 4) {
-          d[i] = 255 - d[i];
-          d[i+1] = 255 - d[i+1];
-          d[i+2] = 255 - d[i+2];
+    fileInput.addEventListener('change', function() {
+      const file = this.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          img.onload = () => {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+            uploadScreen.classList.add('hidden');
+            editorScreen.classList.remove('hidden');
+          }
+          img.src = e.target.result;
         }
-        ctx.putImageData(imgData, 0, 0);
-      } else if (tool === 'download') {
-        downloadImage();
+        reader.readAsDataURL(file);
+      }
+    });
+
+    function zoomIn() {
+      scale *= 1.1;
+      redraw();
+    }
+
+    function zoomOut() {
+      scale *= 0.9;
+      redraw();
+    }
+
+    function invertColors() {
+      let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      for (let i = 0; i < imageData.data.length; i += 4) {
+        imageData.data[i] = 255 - imageData.data[i];
+        imageData.data[i + 1] = 255 - imageData.data[i + 1];
+        imageData.data[i + 2] = 255 - imageData.data[i + 2];
+      }
+      ctx.putImageData(imageData, 0, 0);
+    }
+
+    function grayscale() {
+      let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      for (let i = 0; i < imageData.data.length; i += 4) {
+        let avg = (imageData.data[i] + imageData.data[i + 1] + imageData.data[i + 2]) / 3;
+        imageData.data[i] = avg;
+        imageData.data[i + 1] = avg;
+        imageData.data[i + 2] = avg;
+      }
+      ctx.putImageData(imageData, 0, 0);
+    }
+
+    function saturate() {
+      let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      for (let i = 0; i < imageData.data.length; i += 4) {
+        imageData.data[i] *= 1.1;
+        imageData.data[i + 1] *= 1.1;
+        imageData.data[i + 2] *= 1.1;
+      }
+      ctx.putImageData(imageData, 0, 0);
+    }
+
+    function pixelate() {
+      let step = 10;
+      for (let y = 0; y < canvas.height; y += step) {
+        for (let x = 0; x < canvas.width; x += step) {
+          let data = ctx.getImageData(x, y, step, step);
+          let r = 0, g = 0, b = 0;
+          for (let i = 0; i < data.data.length; i += 4) {
+            r += data.data[i];
+            g += data.data[i + 1];
+            b += data.data[i + 2];
+          }
+          r /= (data.data.length / 4);
+          g /= (data.data.length / 4);
+          b /= (data.data.length / 4);
+          ctx.fillStyle = `rgb(${r},${g},${b})`;
+          ctx.fillRect(x, y, step, step);
+        }
       }
     }
 
-    canvas.addEventListener('mousedown', (e) => {
-      if (tool === 'draw' || tool === 'eraser' || tool === 'crop') {
-        isDrawing = true;
-        startX = e.offsetX;
-        startY = e.offsetY;
-        ctx.beginPath();
-        ctx.moveTo(startX, startY);
-      }
-    });
+    function redraw() {
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    }
 
-    canvas.addEventListener('mousemove', (e) => {
-      if (!isDrawing) return;
-      if (tool === 'draw') {
-        ctx.lineTo(e.offsetX, e.offsetY);
-        ctx.strokeStyle = 'red';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-      } else if (tool === 'eraser') {
-        ctx.clearRect(e.offsetX - 5, e.offsetY - 5, 10, 10);
-      }
-    });
+    function enableDrawing() {
+      canvas.addEventListener('mousedown', startDraw);
+      canvas.addEventListener('mousemove', draw);
+      canvas.addEventListener('mouseup', stopDraw);
+    }
 
-    canvas.addEventListener('mouseup', (e) => {
-      if (!isDrawing) return;
-      isDrawing = false;
-      if (tool === 'crop') {
-        const endX = e.offsetX;
-        const endY = e.offsetY;
-        const cropWidth = endX - startX;
-        const cropHeight = endY - startY;
-        const cropped = ctx.getImageData(startX, startY, cropWidth, cropHeight);
-        canvas.width = cropWidth;
-        canvas.height = cropHeight;
-        ctx.putImageData(cropped, 0, 0);
-      }
-    });
+    function disableDrawing() {
+      canvas.removeEventListener('mousedown', startDraw);
+      canvas.removeEventListener('mousemove', draw);
+      canvas.removeEventListener('mouseup', stopDraw);
+    }
+
+    function startDraw(e) {
+      drawing = true;
+      ctx.beginPath();
+      ctx.moveTo(e.offsetX, e.offsetY);
+    }
+
+    function draw(e) {
+      if (!drawing) return;
+      ctx.lineTo(e.offsetX, e.offsetY);
+      ctx.stroke();
+    }
+
+    function stopDraw() {
+      drawing = false;
+    }
 
     function downloadImage() {
       const link = document.createElement('a');
@@ -153,6 +157,34 @@
       link.href = canvas.toDataURL();
       link.click();
     }
-  </script>
-</body>
+
+    function enableCrop() {
+      canvas.addEventListener('mousedown', cropStartDraw);
+      canvas.addEventListener('mouseup', cropEndDraw);
+    }
+
+    function cropStartDraw(e) {
+      cropStart = { x: e.offsetX, y: e.offsetY };
+    }
+
+    function cropEndDraw(e) {
+      cropEnd = { x: e.offsetX, y: e.offsetY };
+      ctx.strokeStyle = 'red';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(cropStart.x, cropStart.y, cropEnd.x - cropStart.x, cropEnd.y - cropStart.y);
+    }
+
+    function applyCrop() {
+      if (cropStart && cropEnd) {
+        const width = cropEnd.x - cropStart.x;
+        const height = cropEnd.y - cropStart.y;
+        const imageData = ctx.getImageData(cropStart.x, cropStart.y, width, height);
+        canvas.width = width;
+        canvas.height = height;
+        ctx.putImageData(imageData, 0, 0);
+        cropStart = null;
+        cropEnd = null;
+      }
+    }
+  </script></body>
 </html>
